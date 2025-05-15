@@ -6,15 +6,15 @@ const net = require('net');
 const { Buffer } = require('buffer');
 const { exec, execSync } = require('child_process');
 const { WebSocket, createWebSocketStream } = require('ws');
-const UUID = process.env.UUID || 'de04add9-5c68-6bab-950c-08cd5320df33'; // 运行哪吒v1,在不同的平台需要改UUID,否则会被覆盖
-const NEZHA_SERVER = process.env.NEZHA_SERVER || '';       // 哪吒v1填写形式：nz.abc.com:8008   哪吒v0填写形式：nz.abc.com
+const UUID = process.env.UUID || '0196d2a9-b1c0-708e-b48b-6d7634c7fba9'; // 运行哪吒v1,在不同的平台需要改UUID,否则会被覆盖
+const NEZHA_SERVER = process.env.NEZHA_SERVER || '';       // 哪吒v1填写形式：nz.abc.com:8008   哪吒v0填写形式：nz.abc.com  
 const NEZHA_PORT = process.env.NEZHA_PORT || '';           // 哪吒v1没有此变量，v0的agent端口为{443,8443,2096,2087,2083,2053}其中之一时开启tls
-const NEZHA_KEY = process.env.NEZHA_KEY || '';             // v1的NZ_CLIENT_SECRET或v0的agent端口                
+const NEZHA_KEY = process.env.NEZHA_KEY || '';             // v1的NZ_CLIENT_SECRET或v0的agent端口                  
 const DOMAIN = process.env.DOMAIN || '1234.abc.com';       // 填写项目域名或已反代的域名，不带前缀，建议填已反代的域名
 const AUTO_ACCESS = process.env.AUTO_ACCESS || true;      // 是否开启自动访问保活,false为关闭,true为开启,需同时填写DOMAIN变量
-const SUB_PATH = process.env.SUB_PATH || 'sub';            // 获取节点的订阅路径
-const NAME = process.env.NAME || 'Vls';                    // 节点名称
-const PORT = process.env.PORT || 3000;                     // http和ws服务端口
+const SUB_PATH = process.env.SUB_PATH || 'webhostmost';            // 获取节点的订阅路径
+const NAME = process.env.NAME || '[vless]';                    // 节点名称  
+const PORT = process.env.PORT || 3000;                     // http和ws服务端口  
 
 const metaInfo = execSync(
   'curl -s https://speed.cloudflare.com/meta | awk -F\\" \'{print $26"-"$18}\' | sed -e \'s/ /_/g\'',
@@ -28,7 +28,7 @@ const httpServer = http.createServer((req, res) => {
   } else if (req.url === `/${SUB_PATH}`) {
     const vlessURL = `vless://${UUID}@www.visa.com.tw:443?encryption=none&security=tls&sni=${DOMAIN}&type=ws&host=${DOMAIN}&path=%2F#${NAME}-${ISP}`;
 
-    const base64Content = Buffer.from(vlessURL).toString('base64');
+    const base64Content = Buffer.from(vlessURL).toString('base64');  
 
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end(base64Content + '\n');
@@ -40,7 +40,7 @@ const httpServer = http.createServer((req, res) => {
 
 const wss = new WebSocket.Server({ server: httpServer });
 const uuid = UUID.replace(/-/g, "");
-wss.on('connection', ws => {
+wss。on('connection', ws => {
   // console.log("Connected successfully");
   ws.once('message', msg => {
     const [VERSION] = msg;
@@ -56,7 +56,7 @@ wss.on('connection', ws => {
     ws.send(new Uint8Array([VERSION, 0]));
     const duplex = createWebSocketStream(ws);
     net.connect({ host, port }, function () {
-      this.write(msg.slice(i));
+      this.write(msg。slice(i));
       duplex.on('error', () => { }).pipe(this).on('error', () => { }).pipe(duplex);
     }).on('error', () => { });
   }).on('error', () => { });
