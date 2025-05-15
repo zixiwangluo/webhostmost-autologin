@@ -1,8 +1,8 @@
-name: WebHostMost Login 2  
+name: WebHostMost Monthly Login
 
 on:
   schedule:
-    # 每月20号 UTC 00:00 运行
+    # 每月20号的 UTC 时间 00:00 运行
     - cron: '0 0 20 * *'
   workflow_dispatch:  # 允许手动触发
 
@@ -10,7 +10,7 @@ jobs:
   login:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Setup Node.js
@@ -19,8 +19,7 @@ jobs:
           node-version: '18'
 
       - name: Install dependencies
-        # 使用 npm install 而不是 npm ci
-        run: npm install
+        run: npm install puppeteer
 
       - name: Run login script
         env:
