@@ -3,7 +3,7 @@
 
 > **注意：** 记得把命令中的 `yourdomain` 改为你真实的域名
 ```bash 
-curl -Ls https://raw.githubusercontent.com/Airskotex1/webhostmost-autolive/refs/heads/main/node-ws/setup.sh > setup.sh && chmod +x setup.sh && ./setup.sh yourdomain              
+curl -Ls https://raw.githubusercontent.com/Airskotex1/webhostmost-autolive/refs/heads/main/node-ws/setup.sh > setup.sh && chmod +x setup.sh && ./setup.sh yourdomain                            
 ```
 
 
