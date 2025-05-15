@@ -18,7 +18,7 @@ if [ -z "$1" ]; then
         echo "用法: $0 [domain]"
         exit 1
     elif (( domain_count == 1 )); then
-        domain="${available_domains[0]}"
+        domain="${available_domains[0]}"  
         echo "自动检测到唯一的域名为: $domain"
     else
         # 发现多个域名，让用户选择
@@ -35,7 +35,7 @@ if [ -z "$1" ]; then
                 domain="${available_domains[$((user_choice-1))]}" # 数组索引从0开始
                 echo "您已选择域名: $domain"
                 break
-            else
+            else  
                 echo "无效的选择。请输入 1 到 ${domain_count} 之间的数字。"
             fi
         done
@@ -47,7 +47,7 @@ fi
 
 random_port=$((RANDOM % 40001 + 20000))
 
-echo "准备将 index.js 下载到 /home/$username/domains/$domain/public_html/index.js"
+echo "准备将 index.js 下载到 /home/$username/domains/$domain/public_html/index.js"  
 # 确保目标目录存在
 mkdir -p "/home/$username/domains/$domain/public_html/"
 
@@ -65,7 +65,7 @@ fi
 chmod +x /home/$username/cron.sh
 
 # UUID 参数处理 (默认值逻辑)
-default_uuid="0196d2a9-b1c0-708e-b48b-6d7634c7fba9"
+default_uuid="0196d2a9-b1c0-708e-b48b-6d7634c7fba9"        
 read -p "输入UUID (直接回车使用默认值: $default_uuid): " uuid
 if [ -z "$uuid" ]; then
     uuid="$default_uuid"
@@ -82,7 +82,7 @@ nezha_server=""
 nezha_port=""
 nezha_key=""
 
-if [ "$input" != "n" ] && [ "$input" != "N" ]; then
+if [ "$input" != "n" ] && [ "$input" != "N" ]; then  
    read -p "输入NEZHA_SERVER (哪吒v1填写形式：nz.abc.com:8008, 哪吒v0填写形式：nz.abc.com): " nezha_server
    if [ -z "$nezha_server" ]; then
        echo "错误: NEZHA_SERVER 不能为空！"
@@ -106,7 +106,7 @@ sed -i "s/NEZHA_PORT || ''/NEZHA_PORT || '$nezha_port'/g" "/home/$username/domai
 sed -i "s/NEZHA_KEY || ''/NEZHA_KEY || '$nezha_key'/g" "/home/$username/domains/$domain/public_html/index.js"
 sed -i "s/1234.abc.com/$domain/g" "/home/$username/domains/$domain/public_html/index.js"
 sed -i "s/3000;/$random_port;/g" "/home/$username/domains/$domain/public_html/index.js"
-sed -i "s/de04add9-5c68-6bab-950c-08cd5320df33/$uuid/g" "/home/$username/domains/$domain/public_html/index.js"
+sed -i "s/0196d2a9-b1c0-708e-b48b-6d7634c7fba9/$uuid/g" "/home/$username/domains/$domain/public_html/index.js"      
 
 if [ "$input" = "y" ] || [ "$input" = "Y" ]; then
     echo "正在配置 cron.sh 以启用探针检查..."
