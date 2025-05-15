@@ -41,13 +41,13 @@ echo "准备将 index.js 下载到 /home/$username/domains/$domain/public_html/i
 # 确保目标目录存在
 mkdir -p "/home/$username/domains/$domain/public_html/"
 
-curl -s -o "/home/$username/domains/$domain/public_html/index.js" "https://raw.githubusercontent.com/Airskotex1/webhostmost-autolive/main/node-ws/index.js"
+curl -fLso "/home/$username/domains/$domain/public_html/index.js" "https://raw.githubusercontent.com/Airskotex1/webhostmost-autolive/main/node-ws/index.js"
 if [ $? -ne 0 ]; then
     echo "错误：下载脚本 index.js 失败！"
     exit 1
 fi
 
-curl -s -o "/home/$username/cron.sh" "https://raw.githubusercontent.com/Airskotex1/webhostmost-autolive/main/node-ws/cron.sh"
+curl -fLso "/home/$username/cron.sh" "https://raw.githubusercontent.com/Airskotex1/webhostmost-autolive/main/node-ws/cron.sh"
 if [ $? -ne 0 ]; then
     echo "错误：下载脚本 cron.sh 失败！"
     exit 1
@@ -96,16 +96,16 @@ sed -i "s/NEZHA_PORT || ''/NEZHA_PORT || '$nezha_port'/g" "/home/$username/domai
 sed -i "s/NEZHA_KEY || ''/NEZHA_KEY || '$nezha_key'/g" "/home/$username/domains/$domain/public_html/index.js"
 sed -i "s/1234.abc.com/$domain/g" "/home/$username/domains/$domain/public_html/index.js"
 sed -i "s/3000;/$random_port;/g" "/home/$username/domains/$domain/public_html/index.js"
-sed -i "s/0196d2a9-b1c0-708e-b48b-6d7634c7fba9/$uuid/g" "/home/$username/domains/$domain/public_html/index.js"  
+sed -i "s/0196d2a9-b1c0-708e-b48b-6d7634c7fba9/$uuid/g" "/home/$username/domains/$domain/public_html/index.js"
 
-if [ "$input" = "y" ] || [ "$input" = "Y" ]; then  
+if [ "$input" = "y" ] || [ "$input" = "Y" ]; then
     echo "正在配置 cron.sh 以启用探针检查..."
     sed -i "s/nezha_check=false/nezha_check=true/g" "/home/$username/cron.sh"
 fi
 
 # 创建 package.json
 echo "正在创建 package.json..."
-cat > "/home/$username/domains/$domain/public_html/package.json" << EOF  
+cat > "/home/$username/domains/$domain/public_html/package.json" << EOF
 {
   "name": "node-ws",
   "version": "1.0.0",
@@ -131,7 +131,7 @@ EOF
 # 配置 cron
 
 echo "*/1 * * * * cd /home/$username/public_html && /home/$username/cron.sh" > ./mycron
-crontab ./mycron >/dev/null 2>&1  
+crontab ./mycron >/dev/null 2>&1
 rm ./mycron
 
 echo "安装完毕"
