@@ -13,14 +13,14 @@ random_port=$((RANDOM % 40001 + 20000))
 
 echo "to /home/$username/domains/$domain/public_html/index.js"
 curl -s -o "/home/$username/domains/$domain/public_html/index.js" "https://raw.githubusercontent.com/Airskotex1/webhostmost-autolive/refs/heads/main/node-ws/index.js"
-#if [ $? -ne 0 ]; then      
+#if [ $? -ne 0 ]; then
 #    echo "Error: 下载脚本 index.js 失败！"
-#    exit 1  
+#    exit 1
 #fi
-curl -s -o "/home/$username/cron.sh" "https://raw.githubusercontent.com/Airskotex1/webhostmost-autolive/refs/heads/main/node-ws/cron.sh"  
-#if [ $? -ne 0 ]; then  
+curl -s -o "/home/$username/cron.sh" "https://raw.githubusercontent.com/Airskotex1/webhostmost-autolive/refs/heads/main/node-ws/cron.sh"
+#if [ $? -ne 0 ]; then
 #    echo "Error: 下载脚本 cron.sh 失败！"
-#    exit 1  
+#    exit 1
 #fi
 chmod +x /home/$username/cron.sh
 
