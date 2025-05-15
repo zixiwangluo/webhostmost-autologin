@@ -1,4 +1,4 @@
-name: WebHostMost Monthly Login
+name: WebHostMost Login  
 
 on:
   schedule:
