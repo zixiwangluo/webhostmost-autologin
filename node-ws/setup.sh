@@ -1,44 +1,34 @@
 #!/bin/bash
 
 username=$(whoami) # 获取当前用户名
-domains_path="/home/$username/domains/"
 
 # Domain 参数处理
 if [ -z "$1" ]; then
+    # 如果没有提供 domain 参数，则尝试自动检测
+    domains_path="/home/$username/domains/"
     echo "提示：未提供域名参数，尝试在 $domains_path 中自动检测..."
 
-    # 获取 $domains_path 下所有一级子目录的名称，并存入数组
-    # 使用 find 获取目录名，并通过 sort 对其排序
-    mapfile -t available_domains < <(find "$domains_path" -maxdepth 1 -mindepth 1 -type d -exec basename {} \; 2>/dev/null | sort)
-    
-    domain_count=${#available_domains[@]}
+    # 查找 domains_path 下的第一个目录名作为 domain
+    # 使用 find 命令更安全地处理各种目录名
+    first_domain_dir=$(find "$domains_path" -maxdepth 1 -mindepth 1 -type d -print -quit 2>/dev/null)
 
-    if (( domain_count == 0 )); then
+    if [ -z "$first_domain_dir" ]; then
         echo "错误：未提供域名，并且在 $domains_path 中未能自动找到任何域名对应的目录。"
         echo "用法: $0 [domain]"
         exit 1
-    elif (( domain_count == 1 )); then
-        domain="${available_domains[0]}"  
-        echo "自动检测到唯一的域名为: $domain"
-    else
-        # 发现多个域名，让用户选择
-        echo "在 $domains_path 发现以下多个域名目录，请选择一个："
-        for i in "${!available_domains[@]}"; do
-            printf "  %d) %s\n" $((i+1)) "${available_domains[$i]}"
-        done
-        
-        user_choice=""
-        while true; do
-            read -p "请输入数字选择一个域名 (1-${domain_count}): " user_choice
-            # 校验输入是否为数字且在有效范围内
-            if [[ "$user_choice" =~ ^[0-9]+$ ]] && (( user_choice >= 1 && user_choice <= domain_count )); then
-                domain="${available_domains[$((user_choice-1))]}" # 数组索引从0开始
-                echo "您已选择域名: $domain"
-                break
-            else  
-                echo "无效的选择。请输入 1 到 ${domain_count} 之间的数字。"
-            fi
-        done
+    fi
+    domain=$(basename "$first_domain_dir")
+    echo "自动检测到域名为: $domain"
+
+    # 检查是否还有其他域名目录，给出提示
+    # 使用 xargs 清理 wc -l 可能产生的空格，并使用算术比较 (( ))
+    all_domain_dirs_count_output=$(find "$domains_path" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l)
+    all_domain_dirs_count=$(echo "$all_domain_dirs_count_output" | xargs) # 清理空格
+
+    if (( all_domain_dirs_count > 1 )); then # 使用算术比较
+        echo "警告：在 $domains_path 发现多个域名目录。当前脚本使用了第一个找到的 '$domain'。"
+        echo "其他发现的目录有:"
+        find "$domains_path" -maxdepth 1 -mindepth 1 -type d -exec basename {} \; | sed "s/^/  - /"
     fi
 else
     domain=$1
@@ -47,7 +37,7 @@ fi
 
 random_port=$((RANDOM % 40001 + 20000))
 
-echo "准备将 index.js 下载到 /home/$username/domains/$domain/public_html/index.js"  
+echo "准备将 index.js 下载到 /home/$username/domains/$domain/public_html/index.js"
 # 确保目标目录存在
 mkdir -p "/home/$username/domains/$domain/public_html/"
 
@@ -64,8 +54,8 @@ if [ $? -ne 0 ]; then
 fi
 chmod +x /home/$username/cron.sh
 
-# UUID 参数处理 (默认值逻辑)
-default_uuid="0196d2a9-b1c0-708e-b48b-6d7634c7fba9"        
+# UUID 参数处理
+default_uuid="0196d2a9-b1c0-708e-b48b-6d7634c7fba9"
 read -p "输入UUID (直接回车使用默认值: $default_uuid): " uuid
 if [ -z "$uuid" ]; then
     uuid="$default_uuid"
@@ -82,7 +72,7 @@ nezha_server=""
 nezha_port=""
 nezha_key=""
 
-if [ "$input" != "n" ] && [ "$input" != "N" ]; then  
+if [ "$input" != "n" ] && [ "$input" != "N" ]; then
    read -p "输入NEZHA_SERVER (哪吒v1填写形式：nz.abc.com:8008, 哪吒v0填写形式：nz.abc.com): " nezha_server
    if [ -z "$nezha_server" ]; then
        echo "错误: NEZHA_SERVER 不能为空！"
@@ -106,16 +96,16 @@ sed -i "s/NEZHA_PORT || ''/NEZHA_PORT || '$nezha_port'/g" "/home/$username/domai
 sed -i "s/NEZHA_KEY || ''/NEZHA_KEY || '$nezha_key'/g" "/home/$username/domains/$domain/public_html/index.js"
 sed -i "s/1234.abc.com/$domain/g" "/home/$username/domains/$domain/public_html/index.js"
 sed -i "s/3000;/$random_port;/g" "/home/$username/domains/$domain/public_html/index.js"
-sed -i "s/0196d2a9-b1c0-708e-b48b-6d7634c7fba9/$uuid/g" "/home/$username/domains/$domain/public_html/index.js"      
+sed -i "s/0196d2a9-b1c0-708e-b48b-6d7634c7fba9/$uuid/g" "/home/$username/domains/$domain/public_html/index.js"  
 
-if [ "$input" = "y" ] || [ "$input" = "Y" ]; then
+if [ "$input" = "y" ] || [ "$input" = "Y" ]; then  
     echo "正在配置 cron.sh 以启用探针检查..."
     sed -i "s/nezha_check=false/nezha_check=true/g" "/home/$username/cron.sh"
 fi
 
 # 创建 package.json
 echo "正在创建 package.json..."
-cat > "/home/$username/domains/$domain/public_html/package.json" << EOF
+cat > "/home/$username/domains/$domain/public_html/package.json" << EOF  
 {
   "name": "node-ws",
   "version": "1.0.0",
@@ -138,6 +128,18 @@ cat > "/home/$username/domains/$domain/public_html/package.json" << EOF
 }
 EOF
 
+# 配置 cron
+echo "正在配置定时任务..."
+echo "*/1 * * * * cd /home/$username/public_html && /home/$username/cron.sh" > ./mycron
+crontab ./mycron >/dev/null 2>&1
+if [ $? -eq 0 ]; then
+    echo "定时任务已更新。"
+else
+    echo "警告：更新定时任务失败。"
+fi
+rm ./mycron
+
+echo "安装完毕"
 # 配置 cron
 
 echo "*/1 * * * * cd /home/$username/public_html && /home/$username/cron.sh" > ./mycron
