@@ -41,13 +41,13 @@ echo "准备将 index.js 下载到 /home/$username/domains/$domain/public_html/i
 # 确保目标目录存在
 mkdir -p "/home/$username/domains/$domain/public_html/"
 
-curl -s -o "/home/$username/domains/$domain/public_html/index.js" "https://raw.githubusercontent.com/Airskotex1/webhostmost-autolive/main/node-ws/index.js"      
+curl -s -o "/home/$username/domains/$domain/public_html/index.js" "https://raw.githubusercontent.com/Airskotex1/webhostmost-autolive/main/node-ws/index.js"
 if [ $? -ne 0 ]; then
     echo "错误：下载脚本 index.js 失败！"
     exit 1
 fi
 
-curl -s -o "/home/$username/cron.sh" "https://raw.githubusercontent.com/Airskotex1/webhostmost-autolive/main/node-ws/cron.sh"      
+curl -s -o "/home/$username/cron.sh" "https://raw.githubusercontent.com/Airskotex1/webhostmost-autolive/main/node-ws/cron.sh"
 if [ $? -ne 0 ]; then
     echo "错误：下载脚本 cron.sh 失败！"
     exit 1
@@ -128,18 +128,6 @@ cat > "/home/$username/domains/$domain/public_html/package.json" << EOF 
 }
 EOF
 
-# 配置 cron
-echo "正在配置定时任务..."
-echo "*/1 * * * * cd /home/$username/public_html && /home/$username/cron.sh" > ./mycron
-crontab ./mycron >/dev/null 2>&1
-if [ $? -eq 0 ]; then
-    echo "定时任务已更新。"
-else
-    echo "警告：更新定时任务失败。"
-fi
-rm ./mycron
-
-echo "安装完毕"
 # 配置 cron
 
 echo "*/1 * * * * cd /home/$username/public_html && /home/$username/cron.sh" > ./mycron
