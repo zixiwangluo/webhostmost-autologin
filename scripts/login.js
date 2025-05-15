@@ -1,11 +1,11 @@
 const puppeteer = require('puppeteer');
 
 async function login(username, password) {
-  console.log(`尝试登录账号: ${username}`);
+  console.log(`Attempting to login with username: ${username}`);
   
   // 启动浏览器
   const browser = await puppeteer.launch({
-    headless: 'new',
+    headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
   
@@ -22,35 +22,31 @@ async function login(username, password) {
     });
     
     // 等待登录表单加载
-    await page.waitForSelector('#username', { timeout: 10000 });
-    await page.waitForSelector('#password', { timeout: 10000 });
+    await page.waitForSelector('#inputEmail', { timeout: 10000 });
     
     // 输入用户名和密码
-    await page.type('#username', username);
-    await page.type('#password', password);
+    await page.type('#inputEmail', username);
+    await page.type('#inputPassword', password);
     
     // 点击登录按钮
-    await page.click('button[type="submit"]');
-    
-    // 等待登录完成
-    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 });
+    await Promise.all([
+      page.click('button[type="submit"]'),
+      page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 })
+    ]);
     
     // 检查是否登录成功
     const url = page.url();
     if (url.includes('clientarea.php')) {
-      console.log(`${username} 登录成功!`);
+      console.log(`Successfully logged in with ${username}`);
     } else {
-      console.log(`${username} 登录失败!`);
+      console.log(`Failed to login with ${username}`);
     }
     
-    // 截图以验证登录状态
+    // 截图以便验证（可选）
     await page.screenshot({ path: `${username.split('@')[0]}-screenshot.png` });
     
-    // 等待几秒钟
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
   } catch (error) {
-    console.error(`登录 ${username} 时出错:`, error);
+    console.error(`Error during login process for ${username}:`, error);
   } finally {
     await browser.close();
   }
@@ -61,7 +57,7 @@ async function main() {
   const credentials = process.env.USERNAME_AND_PASSWORD;
   
   if (!credentials) {
-    console.error('没有找到凭据。请确保设置了 USERNAME_AND_PASSWORD 环境变量。');
+    console.error('No credentials provided. Please set the USERNAME_AND_PASSWORD secret.');
     process.exit(1);
   }
   
@@ -73,30 +69,27 @@ async function main() {
     
     try {
       // 提取用户名和密码
-      const usernamePart = line.match(/"Username:(.*?)"/i);
-      const passwordPart = line.match(/"Password:(.*?)"/i);
+      const usernamePart = line.match(/"Username:([^"]+)"/);
+      const passwordPart = line.match(/"Password:([^"]+)"/);
       
       if (!usernamePart || !passwordPart) {
-        console.error(`无法解析凭据行: ${line}`);
+        console.error(`Invalid credential format: ${line}`);
         continue;
       }
       
-      const username = usernamePart[1].trim();
-      const password = passwordPart[1].trim();
+      const username = usernamePart[1];
+      const password = passwordPart[1];
       
-      // 登录当前账号
+      // 执行登录
       await login(username, password);
       
-      // 在账号之间添加延迟
+      // 在账户之间添加延迟，避免被检测为自动化
       await new Promise(resolve => setTimeout(resolve, 5000));
       
     } catch (error) {
-      console.error(`处理凭据时出错: ${error.message}`);
+      console.error(`Error processing line: ${line}`, error);
     }
   }
 }
 
-main().catch(error => {
-  console.error('程序执行出错:', error);
-  process.exit(1);
-});
+main().catch(console.error);
