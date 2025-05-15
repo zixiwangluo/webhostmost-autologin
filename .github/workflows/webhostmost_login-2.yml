@@ -1,4 +1,4 @@
-name: WebHostMost Login 2
+name: WebHostMost Login 2  
 
 on:
   schedule:
@@ -19,7 +19,8 @@ jobs:
           node-version: '18'
 
       - name: Install dependencies
-        run: npm ci
+        # 使用 npm install 而不是 npm ci
+        run: npm install
 
       - name: Run login script
         env:
