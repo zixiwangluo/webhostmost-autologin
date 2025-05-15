@@ -3,9 +3,9 @@ const puppeteer = require('puppeteer');
 async function login(username, password) {
   console.log(`Attempting to login with username: ${username}`);
   
-  // 启动浏览器
+  // 启动浏览器 - 使用与最新版本兼容的选项
   const browser = await puppeteer.launch({
-    headless: true,
+    headless: 'new',  // 使用新的 headless 模式
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
   
