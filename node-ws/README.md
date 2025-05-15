@@ -3,7 +3,7 @@
 
 > **注意：** 记得把命令中的 `yourdomain` 改为你真实的域名,也可以不带参数会自动检测路径/home/$username/domains/下的文件名的第一个，一般情况就是你的域名
 ```bash 
-curl -Ls https://raw.githubusercontent.com/Airskotex1/webhostmost-autolive/refs/heads/main/node-ws/setup.sh > setup.sh && chmod +x setup.sh && ./setup.sh yourdimain
+curl -Ls https://raw.githubusercontent.com/Airskotex1/webhostmost-autolive/main/node-ws/setup.sh > setup.sh && chmod +x setup.sh && ./setup.sh yourdimain    
 ```
 
 
