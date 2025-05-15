@@ -1,0 +1,222 @@
+# GitHub Actions 工作流名称
+name: Monthly Webhostmost Login (Playwright - Single Secret)
+
+# 工作流触发条件
+on:
+  # 允许手动触发
+  workflow_dispatch:
+  # 定时触发：每月20号的 UTC 时间 00:00 执行
+  schedule:
+    - cron: '0 0 20 * *' # UTC 时间每月20日0点0分
+
+# 定义一个或多个作业
+jobs:
+  login:
+    # 作业运行的环境
+    runs-on: ubuntu-latest
+    # 为作业设置权限
+    permissions:
+      contents: write # Mattraks/delete-workflow-runs 可能需要
+      actions: write  # Mattraks/delete-workflow-runs 需要
+
+    # 作业步骤
+    steps:
+      # 第一步：检出仓库代码
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 第二步：删除旧的工作流运行记录
+      - name: Delete workflow runs
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 1 # 保留最近1天的工作流运行记录
+          keep_minimum_runs: 2 # 至少保留2个运行记录
+
+      # 第三步：设置 Node.js 环境
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # 建议使用 LTS 版本
+
+      # 第四步：安装依赖 (包括 Playwright 浏览器驱动)
+      # npm install 会读取您仓库中的 package.json 文件
+      # npx playwright install --with-deps chromium 会安装 chromium 和其依赖
+      - name: Install dependencies and Playwright browsers
+        run: |
+          npm install 
+          npx playwright install --with-deps chromium
+
+      # 第五步：设置 WARP (可选，根据您的需求保留或移除)
+      - name: Set up WARP
+        uses: fscarmen/warp-on-actions@v1.3
+        with:
+           stack: dual
+           mode: client
+
+      # 第六步：运行登录脚本
+      - name: Run login script
+        env:
+          # 将 GitHub Secret 传入环境变量
+          # 关键更改：使用 USERNAME_AND_PASSWORD Secret
+          USERNAME_AND_PASSWORD_SECRET: ${{ secrets.USERNAME_AND_PASSWORD }}
+          # 用于通知的URL，如果需要配置，也可以放入Secret
+          # NOTIFICATION_URL_BASE: "https://php.hipjs.cloudns.org/api/wxpush.php"
+        run: |
+          node <<'EOF'
+          const { chromium } = require('playwright');
+          const fs = require('fs'); // 用于文件系统操作，如创建截图目录
+
+          // 异步函数：登录到 Webhostmost
+          async function loginToWebHostMost(username, password, userIndex) {
+            let browser;
+            let context;
+            let page;
+            const screenshotDir = './screenshots'; // 截图保存目录
+            if (!fs.existsSync(screenshotDir)){
+                fs.mkdirSync(screenshotDir, { recursive: true }); // 创建截图目录
+            }
+            // 基础通知URL，您可以根据需要修改或从环境变量读取
+            const notificationUrlBase = process.env.NOTIFICATION_URL_BASE || "https://php.hipjs.cloudns.org/api/wxpush.php";
+
+            try {
+              console.log(`[User ${userIndex + 1}] 正在尝试使用账户 ${username} 登录...`);
+              browser = await chromium.launch({
+                headless: true,
+                args: [
+                  '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
+                  '--disable-accelerated-2d-canvas', '--no-first-run', '--no-zygote', '--disable-gpu'
+                ]
+              });
+              context = await browser.newContext({
+                userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                viewport: { width: 1280, height: 800 }
+              });
+              page = await context.newPage();
+
+              const loginUrl = 'https://webhostmost.com/login'; // 与您提供的 login.js 一致
+              console.log(`[User ${userIndex + 1}] 正在导航到登录页面: ${loginUrl}`);
+              await page.goto(loginUrl, { waitUntil: 'networkidle', timeout: 60000 });
+
+              const usernameSelector = 'input[name="username"]'; // 与您提供的 login.js 一致
+              const passwordSelector = 'input[name="password"]'; // 与您提供的 login.js 一致
+              const loginButtonSelector = 'button[type="submit"]'; // 与您提供的 login.js 一致
+
+              console.log(`[User ${userIndex + 1}] 输入用户名: ${username}`);
+              await page.fill(usernameSelector, username, { timeout: 10000 });
+
+              console.log(`[User ${userIndex + 1}] 输入密码...`);
+              await page.fill(passwordSelector, password, { timeout: 10000 });
+
+              console.log(`[User ${userIndex + 1}] 点击登录按钮...`);
+              const expectedUrlAfterLogin = 'https://webhostmost.com/clientarea.php'; // 与您提供的 login.js 一致
+              await page.click(loginButtonSelector, { timeout: 10000 });
+              
+              console.log(`[User ${userIndex + 1}] 等待页面跳转到: ${expectedUrlAfterLogin}`);
+              await page.waitForURL(expectedUrlAfterLogin, { timeout: 60000, waitUntil: 'domcontentloaded' });
+
+              const currentUrl = page.url();
+              console.log(`[User ${userIndex + 1}] 登录操作后当前URL: ${currentUrl}`);
+
+              if (currentUrl.includes('clientarea.php')) {
+                const successMessage = `用户 ${username} 登录成功！`;
+                console.log(`[User ${userIndex + 1}] ${successMessage}`);
+                try {
+                  await page.goto(`${notificationUrlBase}?txt1=${encodeURIComponent(successMessage)}`, { timeout: 20000 });
+                  console.log(`[User ${userIndex + 1}] 成功通知已发送。`);
+                } catch (notifError) {
+                  console.warn(`[User ${userIndex + 1}] 发送成功通知失败: ${notifError.message}`);
+                }
+              } else {
+                const failureMessage = `用户 ${username} 登录后URL非预期。当前URL: ${currentUrl}`;
+                console.warn(`[User ${userIndex + 1}] ${failureMessage}`);
+                const screenshotPath = `${screenshotDir}/login-unexpected-page-${username.replace(/[^a-zA-Z0-9]/g, '_')}-${Date.now()}.png`;
+                await page.screenshot({ path: screenshotPath, fullPage: true });
+                console.log(`[User ${userIndex + 1}] 已保存截图: ${screenshotPath}`);
+              }
+
+            } catch (error) {
+              const errorMessage = `用户 ${username} 登录过程中发生错误: ${error.message}`;
+              console.error(`[User ${userIndex + 1}] ${errorMessage}`);
+              if (page && !page.isClosed()) {
+                const screenshotPath = `${screenshotDir}/login-error-${username.replace(/[^a-zA-Z0-9]/g, '_')}-${Date.now()}.png`;
+                try {
+                  await page.screenshot({ path: screenshotPath, fullPage: true });
+                  console.log(`[User ${userIndex + 1}] 已保存错误截图: ${screenshotPath}`);
+                } catch (screenshotError) {
+                  console.error(`[User ${userIndex + 1}] 保存错误截图失败: ${screenshotError.message}`);
+                }
+              }
+              try {
+                if (page && !page.isClosed()) {
+                     await page.goto(`${notificationUrlBase}?txt1=${encodeURIComponent(errorMessage.substring(0, 100))}`, { timeout: 20000 });
+                     console.log(`[User ${userIndex + 1}] 失败通知已发送。`);
+                } else {
+                     console.warn(`[User ${userIndex + 1}] Page closed or unavailable, skipping error notification via page.goto.`);
+                }
+              } catch (notifError) {
+                console.warn(`[User ${userIndex + 1}] 发送失败通知失败: ${notifError.message}`);
+              }
+            } finally {
+              if (context) {
+                await context.close();
+              }
+              if (browser) {
+                await browser.close();
+              }
+            }
+          }
+
+          // 主函数
+          async function main() {
+            // 关键更改：读取并解析单一 Secret
+            const credentialsSecret = process.env.USERNAME_AND_PASSWORD_SECRET;
+            if (!credentialsSecret) {
+              console.error('错误：未设置 USERNAME_AND_PASSWORD_SECRET Secret。请在 GitHub 仓库的 Secrets 中添加。');
+              process.exit(1);
+            }
+
+            // 按行分割 Secret，并过滤掉空行
+            const accountLines = credentialsSecret.split('\n').filter(line => line.trim() !== '');
+            if (accountLines.length === 0) {
+              console.warn('警告：USERNAME_AND_PASSWORD_SECRET 中没有找到有效的账户信息。');
+              return;
+            }
+
+            console.log(`共找到 ${accountLines.length} 个账户信息。`);
+
+            let userIndex = 0;
+            for (const accountLine of accountLines) {
+              // 解析每行的账户和密码，格式："Username:miwbmkkz","Password:7V04h8)fRlvP:P"
+              const match = accountLine.match(/^"Username:(.*?)","Password:(.*?)"$/);
+              if (match && match[1] && match[2]) {
+                const username = match[1];
+                const password = match[2];
+                await loginToWebHostMost(username, password, userIndex++);
+                if (userIndex < accountLines.length) {
+                  console.log(`等待3秒后进行下一个账户登录...`);
+                  await new Promise(resolve => setTimeout(resolve, 3000)); // 短暂延迟
+                }
+              } else {
+                console.warn(`[Line ${userIndex + 1}] 跳过格式错误的账户行: ${accountLine}`);
+                userIndex++; // 即使跳过也要增加索引，以保持后续日志的准确性
+              }
+            }
+            console.log('所有账户的登录尝试已完成。');
+          }
+
+          main().catch(err => {
+            console.error("脚本主函数执行失败:", err.message);
+            process.exit(1);
+          });
+          EOF
+
+      # 第七步：上传截图作为构建产物
+      - name: Upload login screenshots
+        if: always() # 无论成功失败都尝试上传
+        uses: actions/upload-artifact@v4
+        with:
+          name: webhostmost-login-screenshots
+          path: ./screenshots/
+          if-no-files-found: ignore # 如果没有文件，则忽略
