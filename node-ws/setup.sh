@@ -1,34 +1,44 @@
 #!/bin/bash
 
 username=$(whoami) # 获取当前用户名
+domains_path="/home/$username/domains/"
 
 # Domain 参数处理
 if [ -z "$1" ]; then
-    # 如果没有提供 domain 参数，则尝试自动检测
-    domains_path="/home/$username/domains/"
     echo "提示：未提供域名参数，尝试在 $domains_path 中自动检测..."
 
-    # 查找 domains_path 下的第一个目录名作为 domain
-    # 使用 find 命令更安全地处理各种目录名
-    first_domain_dir=$(find "$domains_path" -maxdepth 1 -mindepth 1 -type d -print -quit 2>/dev/null)
+    # 获取 $domains_path 下所有一级子目录的名称，并存入数组
+    # 使用 find 获取目录名，并通过 sort 对其排序
+    mapfile -t available_domains < <(find "$domains_path" -maxdepth 1 -mindepth 1 -type d -exec basename {} \; 2>/dev/null | sort)
+    
+    domain_count=${#available_domains[@]}
 
-    if [ -z "$first_domain_dir" ]; then
+    if (( domain_count == 0 )); then
         echo "错误：未提供域名，并且在 $domains_path 中未能自动找到任何域名对应的目录。"
         echo "用法: $0 [domain]"
         exit 1
-    fi
-    domain=$(basename "$first_domain_dir")
-    echo "自动检测到域名为: $domain"
-
-    # 检查是否还有其他域名目录，给出提示
-    # 使用 xargs 清理 wc -l 可能产生的空格，并使用算术比较 (( ))
-    all_domain_dirs_count_output=$(find "$domains_path" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l)
-    all_domain_dirs_count=$(echo "$all_domain_dirs_count_output" | xargs) # 清理空格
-
-    if (( all_domain_dirs_count > 1 )); then # 使用算术比较
-        echo "警告：在 $domains_path 发现多个域名目录。当前脚本使用了第一个找到的 '$domain'。"
-        echo "其他发现的目录有:"
-        find "$domains_path" -maxdepth 1 -mindepth 1 -type d -exec basename {} \; | sed "s/^/  - /"
+    elif (( domain_count == 1 )); then
+        domain="${available_domains[0]}"
+        echo "自动检测到唯一的域名为: $domain"
+    else
+        # 发现多个域名，让用户选择
+        echo "在 $domains_path 发现以下多个域名目录，请选择一个："
+        for i in "${!available_domains[@]}"; do
+            printf "  %d) %s\n" $((i+1)) "${available_domains[$i]}"
+        done
+        
+        user_choice=""
+        while true; do
+            read -p "请输入数字选择一个域名 (1-${domain_count}): " user_choice
+            # 校验输入是否为数字且在有效范围内
+            if [[ "$user_choice" =~ ^[0-9]+$ ]] && (( user_choice >= 1 && user_choice <= domain_count )); then
+                domain="${available_domains[$((user_choice-1))]}" # 数组索引从0开始
+                echo "您已选择域名: $domain"
+                break
+            else
+                echo "无效的选择。请输入 1 到 ${domain_count} 之间的数字。"
+            fi
+        done
     fi
 else
     domain=$1
@@ -54,7 +64,7 @@ if [ $? -ne 0 ]; then
 fi
 chmod +x /home/$username/cron.sh
 
-# UUID 参数处理
+# UUID 参数处理 (默认值逻辑)
 default_uuid="0196d2a9-b1c0-708e-b48b-6d7634c7fba9"
 read -p "输入UUID (直接回车使用默认值: $default_uuid): " uuid
 if [ -z "$uuid" ]; then
