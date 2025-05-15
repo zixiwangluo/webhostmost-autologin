@@ -1,5 +1,5 @@
 # 安装  
-文件来源于https://github.com/frankiejun/node-ws和https://github.com/eooce/node-ws，做个人使用
+文件来源于https://github.com/frankiejun/node-ws 和 https://github.com/eooce/node-ws ，做个人使用  
 
 > **注意：** 记得把命令中的 `yourdomain` 改为你真实的域名
 ```bash 
