@@ -8,8 +8,9 @@ if [ -z "$1" ]; then
     domains_path="/home/$username/domains/"
     echo "提示：未提供域名参数，尝试在 $domains_path 中自动检测..."
 
+    # 查找 domains_path 下的第一个目录名作为 domain
     # 使用 find 命令更安全地处理各种目录名
-    first_domain_dir=$(find "$domains_path" -maxdepth 1 -mindepth 1 -type d -print -quit 2>/dev/null)  
+    first_domain_dir=$(find "$domains_path" -maxdepth 1 -mindepth 1 -type d -print -quit 2>/dev/null)
 
     if [ -z "$first_domain_dir" ]; then
         echo "错误：未提供域名，并且在 $domains_path 中未能自动找到任何域名对应的目录。"
@@ -20,8 +21,11 @@ if [ -z "$1" ]; then
     echo "自动检测到域名为: $domain"
 
     # 检查是否还有其他域名目录，给出提示
-    all_domain_dirs_count=$(find "$domains_path" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l)  
-    if [ "$all_domain_dirs_count" -gt 1 ]; then
+    # 使用 xargs 清理 wc -l 可能产生的空格，并使用算术比较 (( ))
+    all_domain_dirs_count_output=$(find "$domains_path" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l)
+    all_domain_dirs_count=$(echo "$all_domain_dirs_count_output" | xargs) # 清理空格
+
+    if (( all_domain_dirs_count > 1 )); then # 使用算术比较
         echo "警告：在 $domains_path 发现多个域名目录。当前脚本使用了第一个找到的 '$domain'。"
         echo "其他发现的目录有:"
         find "$domains_path" -maxdepth 1 -mindepth 1 -type d -exec basename {} \; | sed "s/^/  - /"
@@ -37,7 +41,7 @@ echo "准备将 index.js 下载到 /home/$username/domains/$domain/public_html/i
 # 确保目标目录存在
 mkdir -p "/home/$username/domains/$domain/public_html/"
 
-curl -s -o "/home/$username/domains/$domain/public_html/index.js" "https://raw.githubusercontent.com/frankiejun/node-ws/main/index.js"  
+curl -s -o "/home/$username/domains/$domain/public_html/index.js" "https://raw.githubusercontent.com/frankiejun/node-ws/main/index.js"
 if [ $? -ne 0 ]; then
     echo "错误：下载脚本 index.js 失败！"
     exit 1
@@ -52,7 +56,7 @@ chmod +x /home/$username/cron.sh
 
 # UUID 参数处理
 default_uuid="0196d2a9-b1c0-708e-b48b-6d7634c7fba9"
-read -p "输入UUID (直接回车使用默认值: $default_uuid): " uuid  # 添加空格以改善提示
+read -p "输入UUID (直接回车使用默认值: $default_uuid): " uuid
 if [ -z "$uuid" ]; then
     uuid="$default_uuid"
     echo "未输入UUID，使用默认UUID: $uuid"
@@ -60,22 +64,21 @@ else
     echo "你输入的UUID: $uuid"
 fi
 
-# 探针安装逻辑 (与原脚本保持一致)
-read -p "是否安装探针? [y/n] (默认为n): " input # 修正提示，更清晰
-input=${input:-n} # 如果用户直接回车，默认为 n
+# 探针安装逻辑
+read -p "是否安装探针? [y/n] (默认为n): " input
+input=${input:-n}
 
 nezha_server=""
 nezha_port=""
 nezha_key=""
 
-if [ "$input" != "n" ] && [ "$input" != "N" ]; then # 接受小写和大写 y
+if [ "$input" != "n" ] && [ "$input" != "N" ]; then
    read -p "输入NEZHA_SERVER (哪吒v1填写形式：nz.abc.com:8008, 哪吒v0填写形式：nz.abc.com): " nezha_server
    if [ -z "$nezha_server" ]; then
        echo "错误: NEZHA_SERVER 不能为空！"
        exit 1
    fi
    read -p "输入NEZHA_PORT (v1面板此处按回车, v0的agent端口为{443,8443,2096,2087,2083,2053}其中之一时开启tls): " nezha_port
-   # nezha_port 可以为空，所以不需要检查 -z
    read -p "输入NEZHA_KEY (v1的NZ_CLIENT_SECRET或v0的agent端口): " nezha_key
    if [ -z "$nezha_key" ]; then
        echo "错误: NEZHA_KEY 不能为空！"
@@ -86,7 +89,7 @@ else
     echo "不安装探针。"
 fi
 
-# 文件内容替换 (与原脚本逻辑类似，注意转义特殊字符)
+# 文件内容替换
 echo "正在配置 index.js..."
 sed -i "s/NEZHA_SERVER || ''/NEZHA_SERVER || '$nezha_server'/g" "/home/$username/domains/$domain/public_html/index.js"
 sed -i "s/NEZHA_PORT || ''/NEZHA_PORT || '$nezha_port'/g" "/home/$username/domains/$domain/public_html/index.js"
@@ -100,7 +103,7 @@ if [ "$input" = "y" ] || [ "$input" = "Y" ]; then
     sed -i "s/nezha_check=false/nezha_check=true/g" "/home/$username/cron.sh"
 fi
 
-# 创建 package.json (与原脚本一致)
+# 创建 package.json
 echo "正在创建 package.json..."
 cat > "/home/$username/domains/$domain/public_html/package.json" << EOF
 {
@@ -125,8 +128,10 @@ cat > "/home/$username/domains/$domain/public_html/package.json" << EOF
 }
 EOF
 
+# 配置 cron
+
 echo "*/1 * * * * cd /home/$username/public_html && /home/$username/cron.sh" > ./mycron
-crontab ./mycron >/dev/null 2>&1
+crontab ./mycron >/dev/null 2>&1  
 rm ./mycron
 
 echo "安装完毕"
