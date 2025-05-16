@@ -34,14 +34,15 @@ else
     domain=$1
     echo "使用提供的域名: $domain"
 fi
-
+# 文件路径
+index_js_path="/home/$username/domains/$domain/public_html/index.js"
 random_port=$((RANDOM % 40001 + 20000))
 
-echo "准备将 index.js 下载到 /home/$username/domains/$domain/public_html/index.js"
+echo "准备将 index.js 下载到 index_js_path"
 # 确保目标目录存在
 mkdir -p "/home/$username/domains/$domain/public_html/"
 
-curl -fLso "/home/$username/domains/$domain/public_html/index.js" "https://raw.githubusercontent.com/Airskotex1/webhostmost-autolive/main/node-ws/index.js"
+curl -fLso "index_js_path" "https://raw.githubusercontent.com/Airskotex1/webhostmost-autolive/main/node-ws/index.js"
 if [ $? -ne 0 ]; then
     echo "错误：下载脚本 index.js 失败！"
     exit 1
@@ -91,12 +92,12 @@ fi
 
 # 文件内容替换
 echo "正在配置 index.js..."
-sed -i "s/NEZHA_SERVER || ''/NEZHA_SERVER || '$nezha_server'/g" "/home/$username/domains/$domain/public_html/index.js"
-sed -i "s/NEZHA_PORT || ''/NEZHA_PORT || '$nezha_port'/g" "/home/$username/domains/$domain/public_html/index.js"
-sed -i "s/NEZHA_KEY || ''/NEZHA_KEY || '$nezha_key'/g" "/home/$username/domains/$domain/public_html/index.js"
-sed -i "s/1234.abc.com/$domain/g" "/home/$username/domains/$domain/public_html/index.js"
-sed -i "s/3000;/$random_port;/g" "/home/$username/domains/$domain/public_html/index.js"
-sed -i "s/0196d2a9-b1c0-708e-b48b-6d7634c7fba9/$uuid/g" "/home/$username/domains/$domain/public_html/index.js"
+sed -i "s/NEZHA_SERVER || ''/NEZHA_SERVER || '$nezha_server'/g" "index_js_path"
+sed -i "s/NEZHA_PORT || ''/NEZHA_PORT || '$nezha_port'/g" "index_js_path"
+sed -i "s/NEZHA_KEY || ''/NEZHA_KEY || '$nezha_key'/g" "index_js_path"
+sed -i "s/1234.abc.com/$domain/g" "index_js_path"
+sed -i "s/3000;/$random_port;/g" "index_js_path"
+sed -i "s/0196d2a9-b1c0-708e-b48b-6d7634c7fba9/$uuid/g" "index_js_path"
 
 if [ "$input" = "y" ] || [ "$input" = "Y" ]; then
     echo "正在配置 cron.sh 以启用探针检查..."
