@@ -133,5 +133,24 @@ EOF
 echo "*/1 * * * * cd /home/$username/public_html && /home/$username/cron.sh" > ./mycron
 crontab ./mycron >/dev/null 2>&1
 rm ./mycron
+# 使用 grep 和正则表达式提取 SUB_PATH 的默认值
+sub_path=$(grep -o "const SUB_PATH = process.env.SUB_PATH || '[^']*'" "$index_js_path" | sed "s/const SUB_PATH = process.env.SUB_PATH || '\([^']*\)'/\1/")
+
+# 如果没有找到值，检查是否使用了双引号
+if [ -z "$sub_path" ]; then
+    sub_path=$(grep -o 'const SUB_PATH = process.env.SUB_PATH || "[^"]*"' "$index_js_path" | sed 's/const SUB_PATH = process.env.SUB_PATH || "\([^"]*\)"/\1/')
+fi
+
+# 检查是否成功提取了值
+if [ -z "$sub_path" ]; then
+    echo "无法从 index.js 中提取 SUB_PATH 的值，使用默认值 'webhostmost'"
+    sub_path="webhostmost"
+else
+    echo "从 index.js 中提取的 SUB_PATH 值为: $sub_path"
+fi
+# 现在你可以使用 $sub_path 变量了
+echo "将使用路径: http://$domain/$sub_path 配置每十分钟访问一次保活"
+(crontab -l 2>/dev/null; echo "*/10 * * * * curl http://$domain/$sub_path") | crontab -
+
 
 echo "安装完毕"

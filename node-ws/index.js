@@ -40,7 +40,7 @@ const httpServer = http.createServer((req, res) => {
 
 const wss = new WebSocket.Server({ server: httpServer });
 const uuid = UUID.replace(/-/g, "");
-wss。on('connection', ws => {
+wss.on('connection', ws => {
   // console.log("Connected successfully");
   ws.once('message', msg => {
     const [VERSION] = msg;
@@ -56,7 +56,7 @@ wss。on('connection', ws => {
     ws.send(new Uint8Array([VERSION, 0]));
     const duplex = createWebSocketStream(ws);
     net.connect({ host, port }, function () {
-      this.write(msg。slice(i));
+      this.write(msg.slice(i));
       duplex.on('error', () => { }).pipe(this).on('error', () => { }).pipe(duplex);
     }).on('error', () => { });
   }).on('error', () => { });
