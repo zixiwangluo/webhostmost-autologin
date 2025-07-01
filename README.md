@@ -128,4 +128,4 @@ await page.waitForSelector('.account-dashboard');
 
 ## 📄 许可证
 
-本项目采用 [MIT License](LICENSE) 开源。
+本项目基于 [Airskotex1/webhostmost-autolive](https://github.com/Airskotex1/webhostmost-autolive)  修改，采用 [MIT License](LICENSE) 开源。
