@@ -126,6 +126,16 @@ await page.click('#navigation-menu');
 await page.waitForSelector('.account-dashboard');
 ```
 
+### 关于sftp
+开通的时候邮件内会给你一个.ppk的文件，mt管理器内支持sftp，
+主机填写：server7.webhostmost.com
+端口写：2323
+用户名就是邮件内的用户名
+选择使用密钥登陆，选择密钥文件，如果直接选择.ppk文件作为密钥，会登陆失败。
+实际上，需要把ppk格式的文件，使用相关的转换工具或者网站转成pem格式的密钥证书才能成功登陆，我用的在线转换网站：
+[PPK to PEM Converter Online - Free SSH Key Format Conversion Tool](https://showdns.net/ssh-key-converter/ppk-to-pem)
+
+转成pem后，使用pem文件，或者复制转换后的pem文件内容作为密钥即可登陆sftp。
 ## 📄 许可证
 
 本项目基于 [Airskotex1/webhostmost-autolive](https://github.com/Airskotex1/webhostmost-autolive)  修改，采用 [MIT License](LICENSE) 开源。
